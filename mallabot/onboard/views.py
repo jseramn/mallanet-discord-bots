@@ -29,15 +29,15 @@ class ApplyModal(discord.ui.Modal, title="Aplicar a Mallanet"):
         max_length=800,
         placeholder="Cuéntanos cómo te gustaría sumar",
     )
-    linkedin = discord.ui.TextInput(
-        label="LinkedIn (opcional)",
+    ciudad = discord.ui.TextInput(
+        label="¿En qué ciudad estás?",
         style=discord.TextStyle.short,
-        required=False,
-        max_length=200,
-        placeholder="https://linkedin.com/in/...",
+        required=True,
+        max_length=100,
+        placeholder="Ej. Bogotá, Medellín, remoto desde…",
     )
     enlace = discord.ui.TextInput(
-        label="Website o Instagram",
+        label="Website, Instagram o LinkedIn",
         style=discord.TextStyle.short,
         required=True,
         max_length=200,
@@ -78,9 +78,8 @@ class ApplyModal(discord.ui.Modal, title="Aplicar a Mallanet"):
         embed.add_field(name="Presentación", value=str(self.presentacion)[:1024], inline=False)
         embed.add_field(name="Qué hace", value=str(self.oficio)[:1024], inline=False)
         embed.add_field(name="Aporte / idea", value=str(self.aporte)[:1024], inline=False)
-        li = str(self.linkedin).strip()
-        embed.add_field(name="LinkedIn", value=li or "_(no indicado)_", inline=False)
-        embed.add_field(name="Website / Instagram", value=str(self.enlace)[:1024], inline=False)
+        embed.add_field(name="Ciudad", value=str(self.ciudad)[:1024], inline=False)
+        embed.add_field(name="Website / IG / LinkedIn", value=str(self.enlace)[:1024], inline=False)
         embed.set_footer(text="Privacidad: solo admisión/coordinación · no se vende")
 
         admin = guild.get_channel(self.settings.channel_bot_admin)

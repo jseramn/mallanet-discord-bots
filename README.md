@@ -31,8 +31,8 @@ VISOR (admin) no corre aquí.
 1. ¿Cómo te presentas? *(req)*
 2. ¿Qué haces? *(req)*
 3. ¿Qué quieres aportar o qué idea tienes? *(req)*
-4. LinkedIn *(opcional)*
-5. Website o Instagram *(req)*
+4. Ciudad
+5. Website, Instagram o LinkedIn *(req)*
 
 Flujo: `#verificacion` → Aplicar → ficha en `#bot-admin` → Aprobar (rol **Verificado**, quita **Pendiente**) / Rechazar.
 

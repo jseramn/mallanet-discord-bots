@@ -49,15 +49,15 @@
       "placeholder": "Cuéntanos cómo te gustaría sumar"
     },
     {
-      "id": "linkedin",
-      "label": "LinkedIn (opcional)",
+      "id": "ciudad",
+      "label": "¿En qué ciudad estás?",
+      "required": true,
       "style": "short",
-      "required": false,
-      "placeholder": "https://linkedin.com/in/..."
+      "placeholder": "Ej. Bogotá, Medellín, remoto desde…"
     },
     {
       "id": "enlace",
-      "label": "Website o Instagram",
+      "label": "Website, Instagram o LinkedIn",
       "style": "short",
       "required": true,
       "placeholder": "https://..."

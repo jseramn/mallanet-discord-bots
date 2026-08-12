@@ -32,12 +32,8 @@ async def handle_apply(interaction: discord.Interaction, settings: Settings) -> 
     if guild is None:
         await interaction.response.send_message("Solo en el server.", ephemeral=True)
         return
+    # Cache-only check. Never fetch_member before responding (causes Discord timeout).
     member = guild.get_member(interaction.user.id)
-    if member is None:
-        try:
-            member = await guild.fetch_member(interaction.user.id)
-        except discord.HTTPException:
-            member = None
     if member and any(r.id == settings.role_verificado for r in member.roles):
         await interaction.response.send_message(
             "Ya tienes **Verificado**. No necesitas aplicar de nuevo.",
@@ -170,6 +166,7 @@ def main() -> None:
             return
         cid = (interaction.data or {}).get("custom_id") or ""
         if cid == BTN_APPLY:
+            log.info("apply click user=%s", interaction.user.id)
             await handle_apply(interaction, settings)
         elif cid.startswith("malla:approve:"):
             await handle_review(interaction, settings, approve=True, applicant_id=int(cid.rsplit(":", 1)[1]))

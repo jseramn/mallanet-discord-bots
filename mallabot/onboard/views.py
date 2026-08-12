@@ -124,6 +124,7 @@ class ApplyView(discord.ui.View):
         emoji="✅",
     )
     async def apply(self, interaction: discord.Interaction, button: discord.ui.Button) -> None:
+        # Respond in the same tick — never await Discord HTTP before send_modal.
         guild = interaction.guild
         if guild is None:
             await interaction.response.send_message("Solo en el server.", ephemeral=True)

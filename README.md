@@ -15,7 +15,7 @@ VISOR (admin) no corre aquí.
    - **MallaOnboard** — Bot + Privileged Intent **Server Members**
    - **MallaWatch** — Bot + Privileged Intents **Server Members** (+ **Moderation** via scope)
 2. Invitar:
-   - Onboard: `applications.commands`, Manage Roles, Send Messages, Embed Links, Read History (en `#verificacion` y `#bot-admin`). Su rol debe estar **por encima** de `Pendiente` y `Verificado`.
+   - Onboard: `applications.commands`, Manage Roles, Manage Messages, Send Messages, Embed Links, Read History (en `#verificacion` y `#bot-admin`). Su rol debe estar **por encima** de `Pendiente` y `Verificado`.
    - Watch: Send Messages + Embed Links en `#logs`, View Audit Log.
 3. `cp .env.example .env` y pega tokens + IDs (ya van los de Mallanet.org).
 4. ```bash
@@ -35,6 +35,8 @@ VISOR (admin) no corre aquí.
 5. Website, Instagram o LinkedIn *(req)*
 
 Flujo: `#verificacion` → Aplicar → ficha en `#bot-admin` → Aprobar (rol **Verificado**, quita **Pendiente**) / Rechazar.
+
+`#verificacion` se mantiene limpio: solo el panel Aplicar; el bot borra mensajes de usuarios y reubica el panel al final.
 
 Aprobadores: roles en `APPROVER_ROLE_IDS` (por defecto Root + MallaNet).
 

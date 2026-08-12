@@ -1,14 +1,21 @@
 from __future__ import annotations
 
+import asyncio
 import logging
+import time
 
 import discord
-from discord.ext import commands
+from discord.ext import commands, tasks
 
 from mallabot.config import Settings, onboard_token
 from mallabot.onboard.views import BTN_APPLY, ApplyModal, ApplyView
 
 log = logging.getLogger("malla.onboard")
+
+# DM cooldown after deleting chatter in #verificacion (seconds).
+_DM_COOLDOWN_S = 3600
+_dm_cooldown: dict[int, float] = {}
+_panel_lock = asyncio.Lock()
 
 
 def _is_approver(member: discord.Member, settings: Settings) -> bool:
@@ -109,10 +116,16 @@ async def handle_review(
     await interaction.followup.send("Hecho." if approve else "Rechazado.", ephemeral=True)
 
 
+def _is_apply_panel(msg: discord.Message, bot_user_id: int) -> bool:
+    return msg.author.id == bot_user_id and bool(msg.components)
+
+
 async def post_apply_panel(bot: commands.Bot, settings: Settings) -> None:
     channel = bot.get_channel(settings.channel_verificacion)
     if not isinstance(channel, discord.TextChannel):
         log.error("CHANNEL_VERIFICACION invalid")
+        return
+    if bot.user is None:
         return
 
     embed = discord.Embed(
@@ -127,23 +140,67 @@ async def post_apply_panel(bot: commands.Bot, settings: Settings) -> None:
     )
     view = ApplyView(settings)
 
-    # Refresh panel: remove old bot panels so the button is bound to this process.
-    async for msg in channel.history(limit=30):
-        if msg.author.id == bot.user.id and msg.components:
-            try:
-                await msg.delete()
-                log.info("Removed old apply panel: %s", msg.id)
-            except discord.HTTPException as e:
-                log.warning("Could not delete old panel %s: %s", msg.id, e)
+    async with _panel_lock:
+        # Refresh panel: remove old bot panels so the button is bound to this process.
+        async for msg in channel.history(limit=30):
+            if _is_apply_panel(msg, bot.user.id):
+                try:
+                    await msg.delete()
+                    log.info("Removed old apply panel: %s", msg.id)
+                except discord.HTTPException as e:
+                    log.warning("Could not delete old panel %s: %s", msg.id, e)
 
-    sent = await channel.send(embed=embed, view=view)
-    bot.add_view(view, message_id=sent.id)
-    log.info("Posted apply panel: %s", sent.id)
+        sent = await channel.send(embed=embed, view=view)
+        bot.add_view(view, message_id=sent.id)
+        log.info("Posted apply panel: %s", sent.id)
+
+
+async def ensure_panel_at_bottom(bot: commands.Bot, settings: Settings) -> None:
+    """Exactly one apply panel, and it must be the newest message. No-op if already ok."""
+    channel = bot.get_channel(settings.channel_verificacion)
+    if not isinstance(channel, discord.TextChannel) or bot.user is None:
+        return
+
+    # Avoid overlapping with an in-flight post_apply_panel.
+    if _panel_lock.locked():
+        return
+
+    try:
+        messages = [m async for m in channel.history(limit=25)]
+    except discord.HTTPException as e:
+        log.warning("No pude leer #verificacion: %s", e)
+        return
+
+    panels = [m for m in messages if _is_apply_panel(m, bot.user.id)]
+    last = messages[0] if messages else None
+
+    if last is not None and len(panels) == 1 and last.id == panels[0].id:
+        return
+
+    log.info(
+        "Panel hygiene: panels=%s last_is_panel=%s → refresh",
+        len(panels),
+        bool(last and panels and last.id == panels[0].id),
+    )
+    await post_apply_panel(bot, settings)
+
+
+async def _maybe_dm_hygiene(user: discord.abc.User) -> None:
+    now = time.monotonic()
+    last = _dm_cooldown.get(user.id, 0.0)
+    if now - last < _DM_COOLDOWN_S:
+        return
+    _dm_cooldown[user.id] = now
+    try:
+        await user.send("En #verificacion solo usa el botón Aplicar ✅")
+    except discord.HTTPException:
+        pass
 
 
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s %(message)s")
     settings = Settings.from_env()
+    # Default intents only (+ members). message_content may be OFF — delete needs no content.
     intents = discord.Intents.default()
     intents.members = True
     intents.guilds = True
@@ -152,10 +209,41 @@ def main() -> None:
     # Persistent fallback (also rebound with message_id in on_ready).
     bot.add_view(ApplyView(settings))
 
+    @tasks.loop(minutes=3)
+    async def panel_hygiene() -> None:
+        await ensure_panel_at_bottom(bot, settings)
+
+    @panel_hygiene.before_loop
+    async def _wait_ready() -> None:
+        await bot.wait_until_ready()
+
     @bot.event
     async def on_ready() -> None:
         log.info("onboard ready as %s", bot.user)
         await post_apply_panel(bot, settings)
+        if not panel_hygiene.is_running():
+            panel_hygiene.start()
+        log.info("cleaner active (#verificacion hygiene)")
+
+    @bot.event
+    async def on_message(message: discord.Message) -> None:
+        # Channel hygiene: strip human chatter; keep only the Aplicar panel.
+        if message.author.bot:
+            return
+        if message.channel.id != settings.channel_verificacion:
+            return
+        try:
+            await message.delete()
+            log.info("Deleted chatter in #verificacion from %s", message.author.id)
+        except discord.Forbidden:
+            log.warning("Sin Manage Messages en #verificacion — no pude borrar %s", message.id)
+            return
+        except discord.HTTPException as e:
+            log.warning("No pude borrar mensaje %s: %s", message.id, e)
+            return
+
+        await _maybe_dm_hygiene(message.author)
+        await ensure_panel_at_bottom(bot, settings)
 
     @bot.event
     async def on_interaction(interaction: discord.Interaction) -> None:

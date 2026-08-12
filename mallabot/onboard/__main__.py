@@ -1,13 +1,12 @@
 from __future__ import annotations
 
-import asyncio
 import logging
 
 import discord
 from discord.ext import commands
 
 from mallabot.config import Settings, onboard_token
-from mallabot.onboard.views import ApplyView
+from mallabot.onboard.views import BTN_APPLY, ApplyModal, ApplyView
 
 log = logging.getLogger("malla.onboard")
 
@@ -24,6 +23,28 @@ async def _fetch_member(guild: discord.Guild, user_id: int) -> discord.Member | 
         return await guild.fetch_member(user_id)
     except discord.HTTPException:
         return None
+
+
+async def handle_apply(interaction: discord.Interaction, settings: Settings) -> None:
+    if interaction.response.is_done():
+        return
+    guild = interaction.guild
+    if guild is None:
+        await interaction.response.send_message("Solo en el server.", ephemeral=True)
+        return
+    member = guild.get_member(interaction.user.id)
+    if member is None:
+        try:
+            member = await guild.fetch_member(interaction.user.id)
+        except discord.HTTPException:
+            member = None
+    if member and any(r.id == settings.role_verificado for r in member.roles):
+        await interaction.response.send_message(
+            "Ya tienes **Verificado**. No necesitas aplicar de nuevo.",
+            ephemeral=True,
+        )
+        return
+    await interaction.response.send_modal(ApplyModal(settings))
 
 
 async def handle_review(
@@ -82,7 +103,6 @@ async def handle_review(
 
     emb = interaction.message.embeds[0] if interaction.message and interaction.message.embeds else discord.Embed()
     emb.color = color
-    # Avoid duplicate Estado if re-clicked
     if emb.fields and emb.fields[0].name == "Estado":
         emb.set_field_at(0, name="Estado", value=status, inline=False)
     else:
@@ -98,11 +118,7 @@ async def post_apply_panel(bot: commands.Bot, settings: Settings) -> None:
     if not isinstance(channel, discord.TextChannel):
         log.error("CHANNEL_VERIFICACION invalid")
         return
-    # Avoid duplicate panels: look at last 20 messages from us with the button
-    async for msg in channel.history(limit=20):
-        if msg.author.id == bot.user.id and msg.components:
-            log.info("Apply panel already present: %s", msg.id)
-            return
+
     embed = discord.Embed(
         title="Verificación — únete a Mallanet",
         description=(
@@ -113,8 +129,20 @@ async def post_apply_panel(bot: commands.Bot, settings: Settings) -> None:
         ).format(settings.channel_reglas),
         color=0x1F6FEB,
     )
-    await channel.send(embed=embed, view=ApplyView(settings))
-    log.info("Posted apply panel")
+    view = ApplyView(settings)
+
+    # Refresh panel: remove old bot panels so the button is bound to this process.
+    async for msg in channel.history(limit=30):
+        if msg.author.id == bot.user.id and msg.components:
+            try:
+                await msg.delete()
+                log.info("Removed old apply panel: %s", msg.id)
+            except discord.HTTPException as e:
+                log.warning("Could not delete old panel %s: %s", msg.id, e)
+
+    sent = await channel.send(embed=embed, view=view)
+    bot.add_view(view, message_id=sent.id)
+    log.info("Posted apply panel: %s", sent.id)
 
 
 def main() -> None:
@@ -125,6 +153,7 @@ def main() -> None:
     intents.guilds = True
     bot = commands.Bot(command_prefix="!", intents=intents)
 
+    # Persistent fallback (also rebound with message_id in on_ready).
     bot.add_view(ApplyView(settings))
 
     @bot.event
@@ -134,10 +163,15 @@ def main() -> None:
 
     @bot.event
     async def on_interaction(interaction: discord.Interaction) -> None:
+        # Fallback if persistent View dispatch misses the component (prevents Discord timeout).
         if interaction.type is not discord.InteractionType.component:
             return
+        if interaction.response.is_done():
+            return
         cid = (interaction.data or {}).get("custom_id") or ""
-        if cid.startswith("malla:approve:"):
+        if cid == BTN_APPLY:
+            await handle_apply(interaction, settings)
+        elif cid.startswith("malla:approve:"):
             await handle_review(interaction, settings, approve=True, applicant_id=int(cid.rsplit(":", 1)[1]))
         elif cid.startswith("malla:reject:"):
             await handle_review(interaction, settings, approve=False, applicant_id=int(cid.rsplit(":", 1)[1]))

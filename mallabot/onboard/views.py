@@ -54,7 +54,15 @@ class ApplyModal(discord.ui.Modal, title="Aplicar a Mallanet"):
             await interaction.response.send_message("Solo en el server.", ephemeral=True)
             return
 
+        # Acknowledge immediately — role + #bot-admin can exceed 3s.
+        await interaction.response.defer(ephemeral=True)
+
         member = guild.get_member(interaction.user.id)
+        if member is None:
+            try:
+                member = await guild.fetch_member(interaction.user.id)
+            except discord.HTTPException:
+                member = None
         pendiente = guild.get_role(self.settings.role_pendiente)
         if member and pendiente and pendiente not in member.roles:
             try:
@@ -77,7 +85,7 @@ class ApplyModal(discord.ui.Modal, title="Aplicar a Mallanet"):
 
         admin = guild.get_channel(self.settings.channel_bot_admin)
         if not isinstance(admin, discord.TextChannel):
-            await interaction.response.send_message(
+            await interaction.followup.send(
                 "No pude notificar a ops. Avisa a un Root.", ephemeral=True
             )
             return
@@ -99,7 +107,7 @@ class ApplyModal(discord.ui.Modal, title="Aplicar a Mallanet"):
             )
         )
         await admin.send(embed=embed, view=view)
-        await interaction.response.send_message(
+        await interaction.followup.send(
             "Aplicación enviada. Quedó en revisión. Te avisamos cuando haya decisión.",
             ephemeral=True,
         )

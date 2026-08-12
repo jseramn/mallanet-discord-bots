@@ -1,0 +1,79 @@
+# Hostinger Docker Manager — Mallanet Discord bots
+services:
+  malla-onboard:
+    image: python:3.12-slim
+    container_name: malla-onboard
+    restart: unless-stopped
+    working_dir: /app
+    environment:
+      GITHUB_TOKEN: ${GITHUB_TOKEN}
+      ONBOARD_TOKEN: ${ONBOARD_TOKEN}
+      GUILD_ID: ${GUILD_ID}
+      ROLE_VERIFICADO: ${ROLE_VERIFICADO}
+      ROLE_PENDIENTE: ${ROLE_PENDIENTE}
+      ROLE_MALLANET: ${ROLE_MALLANET}
+      ROLE_ROOT: ${ROLE_ROOT}
+      CHANNEL_REGLAS: ${CHANNEL_REGLAS}
+      CHANNEL_VERIFICACION: ${CHANNEL_VERIFICACION}
+      CHANNEL_BOT_ADMIN: ${CHANNEL_BOT_ADMIN}
+      CHANNEL_LOGS: ${CHANNEL_LOGS}
+      APPROVER_ROLE_IDS: ${APPROVER_ROLE_IDS}
+      PYTHONUNBUFFERED: "1"
+    command:
+      - sh
+      - -c
+      - |
+        set -eu
+        python - <<'PY'
+        import io,os,tarfile,urllib.request,pathlib,shutil,subprocess,sys
+        h={"Accept":"application/vnd.github+json","User-Agent":"mallabot"}
+        t=os.environ.get("GITHUB_TOKEN","").strip()
+        if t: h["Authorization"]="Bearer "+t
+        data=urllib.request.urlopen(urllib.request.Request(
+          "https://api.github.com/repos/jseramn/mallanet-discord-bots/tarball/main", headers=h), timeout=120).read()
+        root=pathlib.Path("/tmp/src"); shutil.rmtree(root, ignore_errors=True); root.mkdir()
+        tarfile.open(fileobj=io.BytesIO(data), mode="r:gz").extractall(root)
+        inner=next(p for p in root.iterdir() if p.is_dir())
+        app=pathlib.Path("/app"); shutil.rmtree(app, ignore_errors=True); shutil.copytree(inner, app)
+        subprocess.check_call([sys.executable,"-m","pip","install","-q","-r","/app/requirements.txt"])
+        PY
+        exec python -m mallabot.onboard
+
+  malla-watch:
+    image: python:3.12-slim
+    container_name: malla-watch
+    restart: unless-stopped
+    working_dir: /app
+    environment:
+      GITHUB_TOKEN: ${GITHUB_TOKEN}
+      WATCH_TOKEN: ${WATCH_TOKEN}
+      GUILD_ID: ${GUILD_ID}
+      ROLE_VERIFICADO: ${ROLE_VERIFICADO}
+      ROLE_PENDIENTE: ${ROLE_PENDIENTE}
+      ROLE_MALLANET: ${ROLE_MALLANET}
+      ROLE_ROOT: ${ROLE_ROOT}
+      CHANNEL_REGLAS: ${CHANNEL_REGLAS}
+      CHANNEL_VERIFICACION: ${CHANNEL_VERIFICACION}
+      CHANNEL_BOT_ADMIN: ${CHANNEL_BOT_ADMIN}
+      CHANNEL_LOGS: ${CHANNEL_LOGS}
+      APPROVER_ROLE_IDS: ${APPROVER_ROLE_IDS}
+      PYTHONUNBUFFERED: "1"
+    command:
+      - sh
+      - -c
+      - |
+        set -eu
+        python - <<'PY'
+        import io,os,tarfile,urllib.request,pathlib,shutil,subprocess,sys
+        h={"Accept":"application/vnd.github+json","User-Agent":"mallabot"}
+        t=os.environ.get("GITHUB_TOKEN","").strip()
+        if t: h["Authorization"]="Bearer "+t
+        data=urllib.request.urlopen(urllib.request.Request(
+          "https://api.github.com/repos/jseramn/mallanet-discord-bots/tarball/main", headers=h), timeout=120).read()
+        root=pathlib.Path("/tmp/src"); shutil.rmtree(root, ignore_errors=True); root.mkdir()
+        tarfile.open(fileobj=io.BytesIO(data), mode="r:gz").extractall(root)
+        inner=next(p for p in root.iterdir() if p.is_dir())
+        app=pathlib.Path("/app"); shutil.rmtree(app, ignore_errors=True); shutil.copytree(inner, app)
+        subprocess.check_call([sys.executable,"-m","pip","install","-q","-r","/app/requirements.txt"])
+        PY
+        exec python -m mallabot.watch

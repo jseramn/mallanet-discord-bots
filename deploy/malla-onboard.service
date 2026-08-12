@@ -1,0 +1,16 @@
+[Unit]
+Description=Mallanet Discord KYC onboarding bot
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/mallanet-discord-bots
+EnvironmentFile=/opt/mallanet-discord-bots/.env
+ExecStart=/opt/mallanet-discord-bots/.venv/bin/python -m mallabot.onboard
+Restart=always
+RestartSec=5
+User=mallabot
+
+[Install]
+WantedBy=multi-user.target

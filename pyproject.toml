@@ -1,0 +1,20 @@
+[project]
+name = "mallanet-discord-bots"
+version = "0.1.0"
+description = "Mallanet Discord bots: KYC onboarding + audit logs (two entrypoints)"
+requires-python = ">=3.11"
+dependencies = [
+  "discord.py>=2.4.0,<3",
+  "python-dotenv>=1.0.0",
+]
+
+[project.scripts]
+malla-onboard = "mallabot.onboard.__main__:main"
+malla-watch = "mallabot.watch.__main__:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["mallabot*"]

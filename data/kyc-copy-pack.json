@@ -1,0 +1,80 @@
+{
+  "verification_level": 4,
+  "welcome_screen": {
+    "enabled": true,
+    "description": "Mallanet: registro compartido de recursos para emergencias. Software libre, en producción en Colombia y Venezuela.",
+    "welcome_channels": [
+      {
+        "channel_id": "1536940661000118352",
+        "description": "Lee las reglas y el trato de datos",
+        "emoji_name": "📜"
+      },
+      {
+        "channel_id": "1536940664493703233",
+        "description": "Aplica para entrar a la comunidad",
+        "emoji_name": "✅"
+      },
+      {
+        "channel_id": "1536940671557050440",
+        "description": "Qué es Mallanet y cómo trabajamos",
+        "emoji_name": "ℹ️"
+      },
+      {
+        "channel_id": "1536940668105003018",
+        "description": "Novedades oficiales",
+        "emoji_name": "📢"
+      }
+    ]
+  },
+  "modal_fields": [
+    {
+      "id": "nombre",
+      "label": "¿Cómo te presentas?",
+      "style": "short",
+      "required": true,
+      "placeholder": "Nombre o como te conocen"
+    },
+    {
+      "id": "oficio",
+      "label": "¿Qué haces?",
+      "style": "paragraph",
+      "required": true,
+      "placeholder": "Oficio, skills, experiencia breve"
+    },
+    {
+      "id": "aporte",
+      "label": "¿Qué quieres aportar o qué idea tienes?",
+      "style": "paragraph",
+      "required": true,
+      "placeholder": "Cuéntanos cómo te gustaría sumar"
+    },
+    {
+      "id": "linkedin",
+      "label": "LinkedIn (opcional)",
+      "style": "short",
+      "required": false,
+      "placeholder": "https://linkedin.com/in/..."
+    },
+    {
+      "id": "enlace",
+      "label": "Website o Instagram",
+      "style": "short",
+      "required": true,
+      "placeholder": "https://..."
+    }
+  ],
+  "messages": {
+    "reglas": "1537074124822810627",
+    "verificacion": "1537074131407872013"
+  },
+  "staff_review_copy": {
+    "title": "Nueva aplicación",
+    "approve_btn": "Aprobar → Verificado",
+    "reject_btn": "Rechazar",
+    "channel": "#bot-admin"
+  },
+  "dm_approved": "Listo: ya eres Verificado en Mallanet.org. Mira #informacion y #general. Bienvenido/a.",
+  "dm_rejected": "Tu aplicación a Mallanet.org no fue aprobada esta vez. Si crees que fue un error, escribe a un Root o a contacto@mallanet.org.",
+  "button_aplicar_label": "Aplicar",
+  "modal_title": "Aplicar a Mallanet"
+}

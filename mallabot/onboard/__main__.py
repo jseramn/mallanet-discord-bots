@@ -124,7 +124,7 @@ async def post_apply_panel(bot: commands.Bot, settings: Settings) -> None:
         description=(
             "Lee <#{}> y pulsa **Aplicar**.\n"
             "Pedimos presentación, qué haces, qué quieres aportar, "
-            "LinkedIn _(opcional)_ y un **website o Instagram** _(obligatorio)_.\n\n"
+            "**ciudad**, y un **website / Instagram / LinkedIn** _(obligatorio)_.\n\n"
             "Un humano revisa y, si encaja, te damos **Verificado**."
         ).format(settings.channel_reglas),
         color=0x1F6FEB,

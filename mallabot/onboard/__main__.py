@@ -36,20 +36,23 @@ async def handle_review(
         await interaction.response.send_message("Sin permiso.", ephemeral=True)
         return
 
+    # Discord interactions expire in ~3s — defer before role/DM work.
+    await interaction.response.defer(ephemeral=True)
+
     member = await _fetch_member(interaction.guild, applicant_id)
     ver = interaction.guild.get_role(settings.role_verificado)
     pend = interaction.guild.get_role(settings.role_pendiente)
 
     if approve:
         if not member or not ver:
-            await interaction.response.send_message("No pude aprobar (miembro/rol).", ephemeral=True)
+            await interaction.followup.send("No pude aprobar (miembro/rol).", ephemeral=True)
             return
         try:
             await member.add_roles(ver, reason=f"KYC approved by {interaction.user}")
             if pend and pend in member.roles:
                 await member.remove_roles(pend, reason="KYC approved")
         except discord.HTTPException as e:
-            await interaction.response.send_message(f"Error de roles: {e}", ephemeral=True)
+            await interaction.followup.send(f"Error de roles: {e}", ephemeral=True)
             return
         try:
             await member.send(
@@ -79,9 +82,15 @@ async def handle_review(
 
     emb = interaction.message.embeds[0] if interaction.message and interaction.message.embeds else discord.Embed()
     emb.color = color
-    emb.insert_field_at(0, name="Estado", value=status, inline=False)
+    # Avoid duplicate Estado if re-clicked
+    if emb.fields and emb.fields[0].name == "Estado":
+        emb.set_field_at(0, name="Estado", value=status, inline=False)
+    else:
+        emb.insert_field_at(0, name="Estado", value=status, inline=False)
     disabled = discord.ui.View()
-    await interaction.response.edit_message(embed=emb, view=disabled)
+    if interaction.message:
+        await interaction.message.edit(embed=emb, view=disabled)
+    await interaction.followup.send("Hecho." if approve else "Rechazado.", ephemeral=True)
 
 
 async def post_apply_panel(bot: commands.Bot, settings: Settings) -> None:
